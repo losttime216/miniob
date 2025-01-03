@@ -1,7 +1,3 @@
-//
-// Created by NieYang on 2023/10/16.
-//
-
 #pragma once
 
 #include "sql/operator/logical_operator.h"

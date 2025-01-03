@@ -1,7 +1,3 @@
-//
-// Created by NieYang on 2023/10/16.
-//
-
 #include "sql/operator/update_physical_operator.h"
 #include "common/log/log.h"
 #include "storage/record/record.h"
