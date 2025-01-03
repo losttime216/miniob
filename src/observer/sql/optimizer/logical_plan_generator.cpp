@@ -102,8 +102,8 @@ RC LogicalPlanGenerator::create_plan(SelectStmt *select_stmt, unique_ptr<Logical
 
   const vector<Table *> &tables = select_stmt->tables();
   for (Table *table : tables) {
-
-    unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, ReadWriteMode::READ_ONLY));
+    std::vector<Field> fields;
+    unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, ReadWriteMode::READ_ONLY));
     if (table_oper == nullptr) {
       table_oper = std::move(table_get_oper);
     } else {
@@ -246,7 +246,8 @@ RC LogicalPlanGenerator::create_plan(DeleteStmt *delete_stmt, unique_ptr<Logical
 {
   Table                      *table       = delete_stmt->table();
   FilterStmt                 *filter_stmt = delete_stmt->filter_stmt();
-  unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, ReadWriteMode::READ_WRITE));
+  std::vector<Field> fields;
+  unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, ReadWriteMode::READ_WRITE));
 
   unique_ptr<LogicalOperator> predicate_oper;
 
@@ -282,7 +283,7 @@ RC LogicalPlanGenerator::create_plan(
     fields.push_back(Field(table, field_meta));
   }
   // 创建获取表数据算子，false表示可修改数据
-  unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, ReadWriteMode::READ_WRITE));
+  unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, ReadWriteMode::READ_WRITE));
   // 根据filter_stmt创建过滤算子
   unique_ptr<LogicalOperator> predicate_oper;
   RC rc = create_plan(filter_stmt, predicate_oper);

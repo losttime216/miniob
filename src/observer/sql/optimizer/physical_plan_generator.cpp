@@ -11,7 +11,6 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Wangyunlai on 2022/12/14.
 //
-
 #include "common/log/log.h"
 #include "sql/expr/expression.h"
 #include "sql/operator/aggregate_vec_physical_operator.h"
@@ -131,7 +130,7 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
   // 看看是否有可以用于索引查找的表达式
   Table *table = table_get_oper.table();
 
-  Index     *index      = nullptr;
+/* Index     *index      = nullptr;
   ValueExpr *value_expr = nullptr;
   for (auto &expr : predicates) {
     if (expr->type() == ExprType::COMPARISON) {
@@ -171,22 +170,23 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
     }
   }
 
-  if (index != nullptr) {
+    if (index != nullptr) {
     ASSERT(value_expr != nullptr, "got an index but value expr is null ?");
 
     const Value               &value           = value_expr->get_value();
-    IndexScanPhysicalOperator *index_scan_oper = new IndexScanPhysicalOperator(table,
+       IndexScanPhysicalOperator *index_scan_oper = new IndexScanPhysicalOperator(table,
         index,
         table_get_oper.read_write_mode(),
         &value,
-        true /*left_inclusive*/,
+        true ,//左边界
         &value,
-        true /*right_inclusive*/);
+        true );//右边界
 
     index_scan_oper->set_predicates(std::move(predicates));
     oper = unique_ptr<PhysicalOperator>(index_scan_oper);
     LOG_TRACE("use index scan");
-  } else {
+  } else */
+  {
     auto table_scan_oper = new TableScanPhysicalOperator(table, table_get_oper.read_write_mode());
     table_scan_oper->set_predicates(std::move(predicates));
     oper = unique_ptr<PhysicalOperator>(table_scan_oper);
