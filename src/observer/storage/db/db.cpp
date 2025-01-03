@@ -159,6 +159,40 @@ RC Db::create_table(const char *table_name, span<const AttrInfoSqlNode> attribut
   return RC::SUCCESS;
 }
 
+RC Db::drop_table(const char *table_name){
+  Table *table = find_table(table_name);
+  if(table == nullptr){
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  std::string table_name_s = table_name;
+  std::string table_file_name = table_name_s + ".data";
+  std::string table_meta_file_name = table_name_s + ".table";
+  std::vector<std::string> table_index_files_name;
+  const TableMeta & table_meta = table->table_meta();
+  for(auto i = 0; i < table_meta.index_num(); i++){
+    const IndexMeta *index_meta = table_meta.index(i);
+    table_index_files_name.emplace_back(table_index_file(path_.c_str(), table_name, index_meta->name()));
+  }
+  delete table;
+  opened_tables_.erase(table_name);
+  if(remove(table_data_file(path_.c_str(), table_name).c_str()) != 0){
+    LOG_ERROR("Failed to delete table data file: %s.", table_file_name.c_str());
+    return RC::IOERR_DELETE;
+  }
+  if(remove(table_meta_file(path_.c_str(), table_name).c_str()) != 0){
+    LOG_ERROR("Failed to delete table meta file: %s.", table_meta_file_name.c_str());
+    return RC::IOERR_DELETE;
+  }
+  for(std::string &index_file_name : table_index_files_name){
+    if(remove(index_file_name.c_str()) != 0){
+      LOG_ERROR("Failed to delete table index file: %s.", index_file_name.c_str());
+      return RC::IOERR_DELETE;
+    }
+  }
+  return RC::SUCCESS;
+  
+}
+
 Table *Db::find_table(const char *table_name) const
 {
   unordered_map<string, Table *>::const_iterator iter = opened_tables_.find(table_name);
