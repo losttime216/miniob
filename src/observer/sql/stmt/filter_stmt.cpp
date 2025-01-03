@@ -68,6 +68,11 @@ RC get_table_and_field(Db *db, Table *default_table, unordered_map<string, Table
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
+/*  if (strcmp(attr.attribute_name.c_str(), "*") == 0) {
+    field = new FieldMeta("*", (AttrType)1, 1, 1, 1);
+    return RC::SUCCESS;
+  }
+*/
   field = table->table_meta().field(attr.attribute_name.c_str());
   if (nullptr == field) {
     LOG_WARN("no such field in table: table %s, field %s", table->name(), attr.attribute_name.c_str());
