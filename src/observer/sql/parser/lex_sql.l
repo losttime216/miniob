@@ -47,6 +47,9 @@ while (0);
 extern int atoi();
 extern double atof();
 
+date str_to_date(char * s);
+bool is_leap_year(unsigned year);
+
 #define RETURN_TOKEN(token) LOG_DEBUG("%s", #token);return token
 %}
 
@@ -111,6 +114,7 @@ ROLLBACK                                RETURN_TOKEN(TRX_ROLLBACK);
 INT                                     RETURN_TOKEN(INT_T);
 CHAR                                    RETURN_TOKEN(STRING_T);
 FLOAT                                   RETURN_TOKEN(FLOAT_T);
+[Dd][Aa][Tt][Ee]                        RETURN_TOKEN(DATE_T);
 VECTOR                                  RETURN_TOKEN(VECTOR_T);
 LOAD                                    RETURN_TOKEN(LOAD);
 DATA                                    RETURN_TOKEN(DATA);
@@ -137,6 +141,7 @@ FORMAT                                  RETURN_TOKEN(FORMAT);
 "-" |
 "*" |
 "/"                                     { return yytext[0]; }
+{QUOTE}[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}{QUOTE}    yylval->dates = str_to_date(yytext); RETURN_TOKEN(DATE);
 \"[^"]*\"                               yylval->cstring = strdup(yytext); static_cast<std::vector<char*>*>(yyextra)->push_back(yylval->cstring); RETURN_TOKEN(SSS);
 '[^']*\'                                yylval->cstring = strdup(yytext); static_cast<std::vector<char*>*>(yyextra)->push_back(yylval->cstring); RETURN_TOKEN(SSS);
 
@@ -145,4 +150,52 @@ FORMAT                                  RETURN_TOKEN(FORMAT);
 
 void scan_string(const char *str, yyscan_t scanner) {
   yy_switch_to_buffer(yy_scan_string(str, scanner), scanner);
+}
+
+bool is_leap_year(unsigned year) {
+  if ((year % 4 == 0) && (year % 100 != 0))
+    return true;
+  else if (year % 400 == 0)
+    return true;
+  else
+    return false;
+}
+date str_to_date(char *s) {
+  unsigned year = 0, month = 0, day = 0;
+  date t = 0;
+  bool valid = true;
+  s += 1;
+  s[strlen(s)] = '\0';
+  sscanf(s, "%u-%u-%u\'", &year, &month, &day);
+  if (year == 0 || month == 0 || day == 0)
+    valid = false;
+  if (month > 12)
+    valid = false;
+  
+  if (month == 4 || month == 6 || month == 9 || month == 11) {
+    if (day > 30)
+      valid = false;
+  } else if (month == 2) {
+    if (is_leap_year(year)) {
+      if (day > 29)
+        valid = false;
+    } else {
+      if (day > 28)
+        valid = false;
+    }
+  } else {
+    if (day > 31)
+      valid = false;
+  }
+  if (year < 1970 || year > 2038)
+    valid = false;
+  if (year == 2038 && month > 2)
+    valid = false;
+  if (valid)
+    t = day + (month << 8) + (year << 16);
+  else {
+    t = 0;
+  }
+  
+  return t;
 }

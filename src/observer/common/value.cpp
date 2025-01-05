@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/value.h"
 
+#include <iomanip>
 #include "common/lang/comparator.h"
 #include "common/lang/exception.h"
 #include "common/lang/sstream.h"
@@ -25,6 +26,8 @@ Value::Value(int val) { set_int(val); }
 Value::Value(float val) { set_float(val); }
 
 Value::Value(bool val) { set_boolean(val); }
+
+Value::Value(date val){ set_date(val);}
 
 Value::Value(const char *s, int len /*= 0*/) { set_string(s, len); }
 
@@ -121,6 +124,10 @@ void Value::set_data(char *data, int length)
       value_.float_value_ = *(float *)data;
       length_             = length;
     } break;
+    case AttrType::DATES: {
+      value_.date_value_ = *(date *)data;
+      length_ = length;
+    } break;
     case AttrType::BOOLEANS: {
       value_.bool_value_ = *(int *)data != 0;
       length_            = length;
@@ -145,6 +152,12 @@ void Value::set_float(float val)
   attr_type_          = AttrType::FLOATS;
   value_.float_value_ = val;
   length_             = sizeof(val);
+}
+void Value::set_date(date val)
+{
+  attr_type_ = AttrType::DATES;
+  value_.date_value_ = val;
+  length_ = sizeof(val);
 }
 void Value::set_boolean(bool val)
 {
@@ -186,6 +199,9 @@ void Value::set_value(const Value &value)
     } break;
     case AttrType::CHARS: {
       set_string(value.get_string().c_str());
+    } break;
+    case AttrType::DATES: {
+      set_date(value.get_date());
     } break;
     case AttrType::BOOLEANS: {
       set_boolean(value.get_boolean());
@@ -285,6 +301,35 @@ float Value::get_float() const
     }
   }
   return 0;
+}
+
+date Value::get_date() const
+{ 
+  switch (attr_type_) {
+    case AttrType::CHARS: {
+      LOG_TRACE("failed to convert string to date.");
+      return (date)0;
+    } break;
+    case AttrType::INTS: {
+      LOG_TRACE("failed to convert int to date.");
+      return (date)0;
+    } break;
+    case AttrType::FLOATS: {
+      LOG_TRACE("failed to convert float to date.");
+      return (date)0;
+    } break;
+    case AttrType::BOOLEANS: {
+      LOG_TRACE("failed to convert bool to date.");
+      return (date)0;
+    } break;
+    case AttrType::DATES: {
+      return value_.date_value_;
+    } break;
+    default: {
+      LOG_WARN("unknown data type. type=%d", attr_type_);
+      return false;
+    }
+  }
 }
 
 string Value::get_string() const { return this->to_string(); }

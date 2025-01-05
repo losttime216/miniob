@@ -110,6 +110,10 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, unordered_map<st
   } else {
     FilterObj filter_obj;
     filter_obj.init_value(condition.left_value);
+
+    if (filter_obj.value.attr_type() == AttrType::DATES && filter_obj.value.get_date() == 0)
+      return RC::VARIABLE_NOT_VALID;
+
     filter_unit->set_left(filter_obj);
   }
 
@@ -127,6 +131,10 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, unordered_map<st
   } else {
     FilterObj filter_obj;
     filter_obj.init_value(condition.right_value);
+
+    if (filter_obj.value.attr_type() == AttrType::DATES && filter_obj.value.get_date() == 0)
+      return RC::VARIABLE_NOT_VALID;
+
     filter_unit->set_right(filter_obj);
   }
 
