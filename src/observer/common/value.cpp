@@ -237,15 +237,35 @@ const char *Value::data() const
 string Value::to_string() const
 {
   string res;
+  if(this->attr_type_!=AttrType::DATES){
   RC     rc = DataType::type_instance(this->attr_type_)->to_string(*this, res);
   if (OB_FAIL(rc)) {
     LOG_WARN("failed to convert value to string. type=%s", attr_type_to_string(this->attr_type_));
     return "";
   }
-  return res;
+  return res;}
+  else{
+    unsigned year = 0, month = 0, day = 0;
+    stringstream os;
+      date t = value_.date_value_;
+      year = (t >> 16);
+      month = (t >> 8) & 0xff;
+      day = t & 0xff;
+      os << std::setw(4) << std::setfill('0') << year << "-";
+      os << std::setw(2) << std::setfill('0') << month << "-";
+      os << std::setw(2) << std::setfill('0') << day;
+      res = os.str();
+      return res;
+  }
 }
 
-int Value::compare(const Value &other) const { return DataType::type_instance(this->attr_type_)->compare(*this, other); }
+int Value::compare(const Value &other) const { 
+  if(this->attr_type_!=AttrType::DATES){
+  return DataType::type_instance(this->attr_type_)->compare(*this, other); }
+  else{
+    return common::compare_date((void *)&this->value_.date_value_, (void *)&other.value_.date_value_);
+  }
+}
 
 int Value::get_int() const
 {

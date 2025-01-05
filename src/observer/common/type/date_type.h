@@ -28,6 +28,7 @@ public:
 
   RC cast_to(const Value &val, AttrType type, Value &result) const override;
 
+  RC set_value_from_str(Value &val, const string &data) const override;
 
   int cast_cost(AttrType type) override;
 

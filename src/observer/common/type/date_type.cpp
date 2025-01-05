@@ -42,7 +42,7 @@ RC DateType::to_string(const Value &val, string &result) const
 {
   unsigned year = 0, month = 0, day = 0;
   stringstream os;
-      date t = val.get_date();
+      date t = val.value_.date_value_;;
       year = (t >> 16);
       month = (t >> 8) & 0xff;
       day = t & 0xff;
@@ -51,4 +51,20 @@ RC DateType::to_string(const Value &val, string &result) const
       os << std::setw(2) << std::setfill('0') << day;
       result = os.str();
   return RC::SUCCESS;
+}
+
+RC DateType::set_value_from_str(Value &val, const string &data) const
+{
+  RC                rc = RC::SUCCESS;
+  stringstream deserialize_stream;
+  deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
+  deserialize_stream.str(data);
+  date date_value;
+  deserialize_stream >> date_value;
+  if (!deserialize_stream || !deserialize_stream.eof()) {
+    rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+  } else {
+    val.set_int(date_value);
+  }
+  return rc;
 }
