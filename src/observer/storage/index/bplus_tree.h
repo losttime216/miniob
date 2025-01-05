@@ -66,14 +66,18 @@ public:
 
   int operator()(const char *v1, const char *v2) const
   {
-    // TODO: optimized the comparison
+    
+    if(attr_type_!=AttrType::DATES){
     Value left;
     left.set_type(attr_type_);
     left.set_data(v1, attr_length_);
     Value right;
     right.set_type(attr_type_);
     right.set_data(v2, attr_length_);
-    return DataType::type_instance(attr_type_)->compare(left, right);
+    return DataType::type_instance(attr_type_)->compare(left, right);}
+    else{
+      return common::compare_date((void *)v1, (void *)v2);
+    }
   }
 
 private:
