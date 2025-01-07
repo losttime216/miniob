@@ -29,9 +29,38 @@ protected:
   Value value_;
 };
 
+class CountAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+private:
+  int count_ = 0;
+};
+
 class SumAggregator : public Aggregator
 {
 public:
   RC accumulate(const Value &value) override;
   RC evaluate(Value &result) override;
+};
+
+class AvgAggregator : public Aggregator
+{
+public:
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+private:
+  int count_ = 0;
+};
+
+class MaxMinAggregator : public Aggregator
+{
+public:
+  MaxMinAggregator(int32_t is_max);
+  RC accumulate(const Value &value) override;
+  RC evaluate(Value &result) override;
+private:
+  // 1 for max, -1 for min
+  int32_t is_max_;
 };
