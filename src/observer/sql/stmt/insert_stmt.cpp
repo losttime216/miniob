@@ -41,18 +41,31 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
     LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
-
-  const TableMeta &table_meta = table->table_meta();
-  const int        field_num  = table_meta.field_num() - table_meta.sys_field_num();
   for(auto &item : inserts.items) {
     // check the fields number
+    const TableMeta &table_meta = table->table_meta();
+    const int        field_num  = table_meta.field_num() - table_meta.sys_field_num();
     int item_size = static_cast<int>(item.size());
     if (field_num != item_size) {
       LOG_WARN("schema mismatch. value num=%d, field num in schema=%d", item_size, field_num);
       return RC::SCHEMA_FIELD_MISSING;
     }
+    // check fields type
+    const int sys_field_num = table_meta.sys_field_num();
+    for (int i = 0; i < item_size; i++) {
+      const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
+      const AttrType field_type = field_meta->type();
+      const AttrType item_type = item[i].attr_type();
+      if (field_type != item_type) {  // TODO try to convert the value type to field type
+        LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, item_type=%d",
+            table_name, field_meta->name(), field_type, item_type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+      if (item_type == AttrType::DATES && item[i].get_date() == 0) {
+        return RC::VARIABLE_NOT_VALID;
+    }
+   }
   }
-
   // everything alright
   stmt = new InsertStmt(table, std::move(inserts.items));
   return RC::SUCCESS;
