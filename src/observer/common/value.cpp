@@ -36,6 +36,10 @@ Value::Value(const Value &other)
   this->attr_type_ = other.attr_type_;
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
+  this->is_null_   = other.is_null_;
+  if (this->is_null_) {
+    return;
+  }
   switch (this->attr_type_) {
     case AttrType::CHARS: {
       set_string_from_other(other);
@@ -53,6 +57,7 @@ Value::Value(Value &&other)
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
   this->value_     = other.value_;
+  this->is_null_   = other.is_null_;
   other.own_data_  = false;
   other.length_    = 0;
 }
@@ -66,6 +71,10 @@ Value &Value::operator=(const Value &other)
   this->attr_type_ = other.attr_type_;
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
+  this->is_null_   = other.is_null_;
+  if (other.is_null_) {
+    return *this;
+  }
   switch (this->attr_type_) {
     case AttrType::CHARS: {
       set_string_from_other(other);
@@ -88,6 +97,7 @@ Value &Value::operator=(Value &&other)
   this->length_    = other.length_;
   this->own_data_  = other.own_data_;
   this->value_     = other.value_;
+  this->is_null_   = other.is_null_;
   other.own_data_  = false;
   other.length_    = 0;
   return *this;
@@ -106,12 +116,22 @@ void Value::reset()
   }
 
   attr_type_ = AttrType::UNDEFINED;
+  is_null_   = false;
   length_    = 0;
   own_data_  = false;
 }
 
-void Value::set_data(char *data, int length)
+void Value::set_data(char *data, int length, bool is_not_null)
 {
+  if (!is_not_null) {
+    is_null_ = static_cast<bool>(data[length]);
+    if(is_null_) {
+      return;
+    }
+  }
+  else {
+    is_null_ = false;
+  }
   switch (attr_type_) {
     case AttrType::CHARS: {
       set_string(data, length);
@@ -144,6 +164,7 @@ void Value::set_int(int val)
   attr_type_        = AttrType::INTS;
   value_.int_value_ = val;
   length_           = sizeof(val);
+  is_null_          = false;
 }
 
 void Value::set_float(float val)
@@ -152,12 +173,14 @@ void Value::set_float(float val)
   attr_type_          = AttrType::FLOATS;
   value_.float_value_ = val;
   length_             = sizeof(val);
+  is_null_            = false;
 }
 void Value::set_date(date val)
 {
   attr_type_ = AttrType::DATES;
   value_.date_value_ = val;
   length_ = sizeof(val);
+  is_null_            = false;
 }
 void Value::set_boolean(bool val)
 {
@@ -165,6 +188,7 @@ void Value::set_boolean(bool val)
   attr_type_         = AttrType::BOOLEANS;
   value_.bool_value_ = val;
   length_            = sizeof(val);
+  is_null_            = false;
 }
 
 void Value::set_string(const char *s, int len /*= 0*/)
@@ -173,6 +197,7 @@ void Value::set_string(const char *s, int len /*= 0*/)
   attr_type_ = AttrType::CHARS;
   if (s == nullptr) {
     value_.pointer_value_ = nullptr;
+    is_null_              = true;
     length_               = 0;
   } else {
     own_data_ = true;
@@ -185,11 +210,17 @@ void Value::set_string(const char *s, int len /*= 0*/)
     length_               = len;
     memcpy(value_.pointer_value_, s, len);
     value_.pointer_value_[len] = '\0';
+    is_null_                  = false;
   }
 }
 
 void Value::set_value(const Value &value)
 {
+  if(value.is_null_) {
+    this->attr_type_ = value.attr_type_;
+    this->is_null_ = true;
+    return;
+  }
   switch (value.attr_type_) {
     case AttrType::INTS: {
       set_int(value.get_int());
@@ -215,6 +246,13 @@ void Value::set_value(const Value &value)
 void Value::set_string_from_other(const Value &other)
 {
   ASSERT(attr_type_ == AttrType::CHARS, "attr type is not CHARS");
+  if (other.is_null_) {
+    free(this->value_.pointer_value_);
+    this->value_.pointer_value_ = nullptr;
+    this->length_               = 0;
+    this->is_null_              = true;
+    return;
+  }
   if (own_data_ && other.value_.pointer_value_ != nullptr && length_ != 0) {
     this->value_.pointer_value_ = new char[this->length_ + 1];
     memcpy(this->value_.pointer_value_, other.value_.pointer_value_, this->length_);
@@ -224,6 +262,9 @@ void Value::set_string_from_other(const Value &other)
 
 const char *Value::data() const
 {
+  if (is_null_) {
+    return nullptr;
+  }
   switch (attr_type_) {
     case AttrType::CHARS: {
       return value_.pointer_value_;
@@ -238,13 +279,20 @@ string Value::to_string() const
 {
   string res;
   if(this->attr_type_!=AttrType::DATES){
+  if (is_null_) { 
+    return "NULL";
+  }
   RC     rc = DataType::type_instance(this->attr_type_)->to_string(*this, res);
   if (OB_FAIL(rc)) {
     LOG_WARN("failed to convert value to string. type=%s", attr_type_to_string(this->attr_type_));
     return "";
   }
-  return res;}
+  return res;
+  }
   else{
+    if (is_null_) { 
+    return "NULL";
+   }
     unsigned year = 0, month = 0, day = 0;
     stringstream os;
       date t = value_.date_value_;
@@ -269,6 +317,9 @@ int Value::compare(const Value &other) const {
 
 int Value::get_int() const
 {
+  if (is_null_) {
+    LOG_WARN("can't get null value as int");
+  }
   switch (attr_type_) {
     case AttrType::CHARS: {
       try {
@@ -297,6 +348,9 @@ int Value::get_int() const
 
 float Value::get_float() const
 {
+  if (is_null_) {
+    LOG_WARN("can't get null value as float");
+  }
   switch (attr_type_) {
     case AttrType::CHARS: {
       try {
@@ -325,6 +379,9 @@ float Value::get_float() const
 
 date Value::get_date() const
 { 
+  if (is_null_) {
+    LOG_WARN("can't get null value as date");
+  }
   switch (attr_type_) {
     case AttrType::CHARS: {
       LOG_TRACE("failed to convert string to date.");
@@ -352,10 +409,18 @@ date Value::get_date() const
   }
 }
 
-string Value::get_string() const { return this->to_string(); }
+string Value::get_string() const { 
+  if (is_null_) {
+    LOG_WARN("can't get null value as string");
+  }  
+  return this->to_string(); 
+}
 
 bool Value::get_boolean() const
 {
+  if (is_null_) {
+    LOG_WARN("can't get null value as boolean");
+  }
   switch (attr_type_) {
     case AttrType::CHARS: {
       try {

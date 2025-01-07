@@ -200,6 +200,15 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
   const TupleSchema &schema   = sql_result->tuple_schema();
   const int          cell_num = schema.cell_num();
 
+  bool multi_table = false;
+  for(int i = 1; i < cell_num; i++) {
+    if (strcmp(schema.cell_at(i).table_name(), schema.cell_at(0).table_name()) != 0) {
+      multi_table = true;
+      break;
+    }
+  }
+
+
   for (int i = 0; i < cell_num; i++) {
     const TupleCellSpec &spec  = schema.cell_at(i);
     const char          *alias = spec.alias();
@@ -210,6 +219,23 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
         rc = writer_->writen(delim, strlen(delim));
         if (OB_FAIL(rc)) {
           LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+          return rc;
+        }
+      }
+
+        if (multi_table) {
+        const char *table_name = spec.table_name();
+        rc = writer_->writen(table_name, strlen(table_name));
+        if (OB_FAIL(rc)) {
+          LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+          sql_result->close();
+          return rc;
+        }
+
+        rc = writer_->writen(".", 1);
+        if (OB_FAIL(rc)) {
+          LOG_WARN("failed to send data to client. err=%s", strerror(errno));
+          sql_result->close();
           return rc;
         }
       }

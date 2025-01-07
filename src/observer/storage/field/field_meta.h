@@ -30,11 +30,10 @@ class FieldMeta
 {
 public:
   FieldMeta();
-  FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id);
+  FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id, bool nullable = false);
   ~FieldMeta() = default;
 
-  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id);
-
+  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, int field_id, bool nullable = false);
 public:
   const char *name() const;
   AttrType    type() const;
@@ -42,9 +41,12 @@ public:
   int         len() const;
   bool        visible() const;
   int         field_id() const;
+  bool        is_nullable() const;
 
 public:
   void desc(ostream &os) const;
+  bool check_null_marker(const char *record_data) const;
+  RC set_null_marker(char *record_data, bool is_null) const;
 
 public:
   void      to_json(Json::Value &json_value) const;
@@ -57,4 +59,5 @@ protected:
   int      attr_len_;
   bool     visible_;
   int      field_id_;
+  bool     nullable_;
 };

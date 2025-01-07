@@ -121,8 +121,26 @@ ComparisonExpr::~ComparisonExpr() {}
 RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &result) const
 {
   RC  rc         = RC::SUCCESS;
-  int cmp_result = left.compare(right);
   result         = false;
+  if (comp_ == IS_NOT_OP) {
+    result = (left.is_null() != right.is_null());
+    return rc;
+  } else if (comp_ == IS_OP) {
+    result = (left.is_null() == right.is_null());
+    return rc;
+  } 
+  if (left.is_null() || right.is_null()) { // 和 null 比较无论是什么都是 false
+    result = false;
+    return rc;
+  }
+  int cmp_result = left.compare(right);
+  // LOG_INFO("left: %s, right: %s, cmp_result: %d", left.to_string().c_str(), right.to_string().c_str(), cmp_result);
+
+  if (cmp_result == INT32_MAX) { 
+    result = false;
+    LOG_WARN("failed to compare two values. left=%s, right=%s", left.to_string().c_str(), right.to_string().c_str());
+    return RC::INTERNAL;
+  }
   switch (comp_) {
     case EQUAL_TO: {
       result = (0 == cmp_result);

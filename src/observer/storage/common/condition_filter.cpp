@@ -124,16 +124,23 @@ bool DefaultConditionFilter::filter(const Record &rec) const
 
   if (left_.is_attr) {  // value
     left_value.set_type(attr_type_);
-    left_value.set_data(rec.data() + left_.attr_offset, left_.attr_length);
+    left_value.set_data(rec.data() + left_.attr_offset, left_.attr_length - 1);
   } else {
     left_value.set_value(left_.value);
   }
 
   if (right_.is_attr) {
     right_value.set_type(attr_type_);
-    right_value.set_data(rec.data() + right_.attr_offset, right_.attr_length);
+    right_value.set_data(rec.data() + right_.attr_offset, right_.attr_length - 1);
   } else {
     right_value.set_value(right_.value);
+  }
+
+   if (comp_op_ == IS_OP) {
+    return left_value.is_null() == right_value.is_null();
+  }
+  if (comp_op_ == IS_NOT_OP) {
+    return left_value.is_null() != right_value.is_null();
   }
 
   int cmp_result = left_value.compare(right_value);

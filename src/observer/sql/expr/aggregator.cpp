@@ -17,8 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 RC CountAggregator::accumulate(const Value &value)//count实现
 {
-  // TODO count non-null values
-  // if (!value.is_null())
+  if (!value.is_null())
   count_++;
   return RC::SUCCESS;
 }
@@ -31,6 +30,9 @@ RC CountAggregator::evaluate(Value &result)
 
 RC SumAggregator::accumulate(const Value &value)//sum实现
 {
+  if (value.is_null()) {
+    return RC::SUCCESS;
+  }
   if (value_.attr_type() == AttrType::UNDEFINED) {
     value_ = value;
     return RC::SUCCESS;
@@ -51,6 +53,9 @@ RC SumAggregator::evaluate(Value& result)
 
 RC AvgAggregator::accumulate(const Value &value)//avg实现
 {
+  if (value.is_null()) {
+    return RC::SUCCESS;
+  }
   if (value_.attr_type() == AttrType::UNDEFINED) { // first value
     value_ = value;
     count_ = 1;
@@ -67,6 +72,10 @@ RC AvgAggregator::accumulate(const Value &value)//avg实现
 
 RC AvgAggregator::evaluate(Value& result)
 {
+  if (count_ == 0) {
+    result.set_null(true);
+    return RC::SUCCESS;
+  }
   result.set_type(AttrType::FLOATS);
   LOG_DEBUG("value_ = %s, count_ = %d", value_.to_string().c_str(), count_);
   Value::divide(value_, Value(count_), result); // only float_type support divide
@@ -77,6 +86,9 @@ MaxMinAggregator::MaxMinAggregator(int32_t is_max) : is_max_(is_max) {}
 
 RC MaxMinAggregator::accumulate(const Value &value)//maxmin实现
 {
+  if (value.is_null()) {
+    return RC::SUCCESS;
+  }
   if (value_.attr_type() == AttrType::UNDEFINED) {
     value_ = value;
     return RC::SUCCESS;

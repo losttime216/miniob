@@ -171,7 +171,11 @@ RC LogicalPlanGenerator::create_plan(FilterStmt *filter_stmt, unique_ptr<Logical
                                      ? static_cast<Expression *>(new FieldExpr(filter_obj_right.field))
                                      : static_cast<Expression *>(new ValueExpr(filter_obj_right.value)));
 
-    if (left->value_type() != right->value_type()) {
+    if ((!filter_obj_left.is_attr && filter_obj_left.value.is_null()) || (!filter_obj_right.is_attr && filter_obj_right.value.is_null())) {
+      // do nothing, 只要有一个是 NULL 就不用强制转换
+      LOG_INFO("do nothing, 只要有一个是 NULL 就不用强制转换, %d, %d, %d", !filter_obj_left.is_attr && filter_obj_left.value.is_null(), !filter_obj_right.is_attr && filter_obj_right.value.is_null(), filter_obj_right.value.is_null());
+    }
+    else if (left->value_type() != right->value_type()) {
       auto left_to_right_cost = implicit_cast_cost(left->value_type(), right->value_type());
       auto right_to_left_cost = implicit_cast_cost(right->value_type(), left->value_type());
       if (left_to_right_cost <= right_to_left_cost && left_to_right_cost != INT32_MAX) {

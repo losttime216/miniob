@@ -30,7 +30,7 @@ RC BplusTreeIndex::create(Table *table, const char *file_name, const IndexMeta &
   Index::init(index_meta, field_meta);
 
   BufferPoolManager &bpm = table->db()->buffer_pool_manager();
-  RC rc = index_handler_.create(table->db()->log_handler(), bpm, file_name, field_meta.type(), field_meta.len());
+  RC rc = index_handler_.create(table->db()->log_handler(), bpm, file_name, field_meta.type(), field_meta.len() - 1); // -1 for null marker, see FieldMeta::init
   if (RC::SUCCESS != rc) {
     LOG_WARN("Failed to create index_handler, file_name:%s, index:%s, field:%s, rc:%s",
         file_name, index_meta.name(), index_meta.field(), strrc(rc));
@@ -85,7 +85,7 @@ RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
   if (index_meta_.type() == IndexMeta::IndexType::INDEX_TYPE_UNIQUE) {
     // unique index
     list<RID> tmp_rid;
-    RC rc = index_handler_.get_entry(record + field_meta_.offset(), field_meta_.len(), tmp_rid);
+    RC rc = index_handler_.get_entry(record + field_meta_.offset(), field_meta_.len() - 1, tmp_rid);
     if (rc == RC::SUCCESS) {
       if (!tmp_rid.empty()) {
         LOG_WARN("Failed to insert existing entry into unique index . index:%s, field:%s, rc:%s",

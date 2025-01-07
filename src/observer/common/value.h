@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <common/log/log.h>
 #include "common/lang/string.h"
 #include "common/lang/memory.h"
 #include "common/type/attr_type.h"
@@ -37,12 +38,11 @@ public:
   friend class DateType;
   friend class VectorType;
 
-  Value() = default;
+  Value() : attr_type_(AttrType::UNDEFINED), is_null_(true) {};
 
   ~Value() { reset(); }
 
-  Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type) { this->set_data(data, length); }
-
+ Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type) { this->set_data(data, length, true); }
   explicit Value(int val);
   explicit Value(float val);
   explicit Value(bool val);
@@ -59,26 +59,41 @@ public:
 
   static RC add(const Value &left, const Value &right, Value &result)
   {
+    if (left.is_null() || right.is_null()) {
+      LOG_WARN("add null value");
+    }
     return DataType::type_instance(result.attr_type())->add(left, right, result);
   }
 
   static RC subtract(const Value &left, const Value &right, Value &result)
   {
+    if (left.is_null() || right.is_null()) {
+      LOG_WARN("subtract null value");
+    }
     return DataType::type_instance(result.attr_type())->subtract(left, right, result);
   }
 
   static RC multiply(const Value &left, const Value &right, Value &result)
   {
+    if (left.is_null() || right.is_null()) {
+      LOG_WARN("multiply null value");
+    }
     return DataType::type_instance(result.attr_type())->multiply(left, right, result);
   }
 
   static RC divide(const Value &left, const Value &right, Value &result)
   {
+    if (left.is_null() || right.is_null()) {
+      LOG_WARN("divide null value");
+    }
     return DataType::type_instance(result.attr_type())->divide(left, right, result);
   }
 
   static RC negative(const Value &value, Value &result)
   {
+    if (value.is_null()) {
+      LOG_WARN("negative null value");
+    }
     return DataType::type_instance(result.attr_type())->negative(value, result);
   }
 
@@ -88,11 +103,12 @@ public:
   }
 
   void set_type(AttrType type) { this->attr_type_ = type; }
-  void set_data(char *data, int length);
+  void set_data(char *data, int length, bool is_not_null = false);
   void set_data(const char *data, int length) { this->set_data(const_cast<char *>(data), length); }
   void set_value(const Value &value);
   void set_boolean(bool val);
   void set_date(date val);
+  void set_null(bool is_null) { this->is_null_ = is_null; }
 
   string to_string() const;
 
@@ -112,7 +128,8 @@ public:
   float  get_float() const;
   string get_string() const;
   bool   get_boolean() const;
-  date get_date() const;
+  date   get_date() const;
+  bool   is_null() const { return is_null_; }
 
 private:
   void set_int(int val);
@@ -123,6 +140,7 @@ private:
 private:
   AttrType attr_type_ = AttrType::UNDEFINED;
   int      length_    = 0;
+  bool     is_null_   = false;
 
   union Val
   {

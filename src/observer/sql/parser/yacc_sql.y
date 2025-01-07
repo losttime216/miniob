@@ -90,6 +90,10 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         FLOAT_T
         DATE_T
         VECTOR_T
+        NULLABLE
+        IS_T
+        NOT_T
+        NULL_T
         HELP
         EXIT
         DOT //QUOTE
@@ -136,7 +140,8 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   char *                                     cstring;
   int                                        number;
   float                                      floats;
-  date                              dates;
+  date                                       dates;
+  bool                                       boolean;
 }
 
 %token <number> NUMBER
@@ -151,6 +156,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <condition>           condition
 %type <value>               value
 %type <number>              number
+%type <boolean>             nullable_desc
 %type <relation>            relation
 %type <comp>                comp_op
 %type <rel_attr>            rel_attr
@@ -356,19 +362,33 @@ attr_def_list:
     ;
     
 attr_def:
-    ID type LBRACE number RBRACE 
+    ID type LBRACE number RBRACE nullable_desc
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
       $$->name = $1;
-      $$->length = $4;
+      $$->length = $4 + 1; // the last bit is used for the table to know if the data is null;
+      $$->nullable = $6;
     }
-    | ID type
+    | ID type nullable_desc
     {
       $$ = new AttrInfoSqlNode;
       $$->type = (AttrType)$2;
       $$->name = $1;
-      $$->length = 4;
+      $$->length = 4 + 1; // the last bit is used for the table to know if the data is null;
+      $$->nullable = $3;
+    }
+    ;
+nullable_desc:
+    /* empty */
+    {
+      $$ = false;
+    }
+    | NULLABLE {
+      $$ = true;
+    }
+    | NOT_T NULL_T {
+      $$ = false;
     }
     ;
 number:
@@ -459,6 +479,10 @@ value:
       free(tmp);
     }
     ;
+    |NULL_T {
+      $$ = new Value();
+      @$ = @1; // 它将规则右侧第一个符号的语义值赋给整个规则的语义值
+    }
 storage_format:
     /* empty */
     {
@@ -765,6 +789,8 @@ comp_op:
     | LE { $$ = LESS_EQUAL; }
     | GE { $$ = GREAT_EQUAL; }
     | NE { $$ = NOT_EQUAL; }
+    | IS_T NOT_T { $$ = IS_NOT_OP; }
+    | IS_T { $$ = IS_OP; } // define in parse_defs.h CompOp
     ;
 
 // your code here

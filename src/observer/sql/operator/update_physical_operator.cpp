@@ -30,9 +30,14 @@ RC UpdatePhysicalOperator::open(Trx *trx)
         records_.emplace_back(std::move(record));
     }
     child->close();
+
     // 先收集记录再更新
-    
-    if (field_meta_->type() != values_->attr_type()) { // 类型不一致，需要转换，例如 str 转 date
+    if (!field_meta_->is_nullable() && values_->is_null()) {
+        LOG_WARN("field is not nullable, but value is null, field: %s", field_meta_->name());
+        return RC::INVALID_ARGUMENT;
+    }
+
+    if (!values_->is_null() && field_meta_->type() != values_->attr_type()) {
         Value real_value;
         rc = Value::cast_to(*values_, field_meta_->type(), real_value);
         if (rc != RC::SUCCESS) {
@@ -48,7 +53,8 @@ RC UpdatePhysicalOperator::open(Trx *trx)
         Record new_record;
         new_record.copy_data(record.data(), record.len());
         new_record.set_rid(record.rid());
-        new_record.set_field(field_meta_->offset(), field_meta_->len(), const_cast<char*>(values_->data()));
+        new_record.set_field(field_meta_->offset(), field_meta_->len() - 1, const_cast<char*>(values_->data())); 
+        field_meta_->set_null_marker(new_record.data(), values_->is_null());
         new_records.emplace_back(std::move(new_record));
         trx_->delete_record(table_, record); // 由于 unique index 的存在，需要先全部删除再插入，而不能删除一条就插入一条
     }

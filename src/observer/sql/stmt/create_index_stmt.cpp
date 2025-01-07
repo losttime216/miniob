@@ -17,7 +17,6 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
-#include "storage/index/index_meta.h"
 
 using namespace std;
 using namespace common;

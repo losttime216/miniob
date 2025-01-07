@@ -70,10 +70,10 @@ public:
     if(attr_type_!=AttrType::DATES){
     Value left;
     left.set_type(attr_type_);
-    left.set_data(v1, attr_length_);
+    left.set_data(v1, attr_length_ - 1);
     Value right;
     right.set_type(attr_type_);
-    right.set_data(v2, attr_length_);
+    right.set_data(v2, attr_length_ - 1);
     return DataType::type_instance(attr_type_)->compare(left, right);}
     else{
       return common::compare_date((void *)v1, (void *)v2);
