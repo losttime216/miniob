@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/sys/rc.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
+#include "sql/expr/expression.h"
 
 class FieldMeta;
 class FilterStmt;
@@ -44,10 +45,14 @@ public:
 
   vector<unique_ptr<Expression>> &query_expressions() { return query_expressions_; }
   vector<unique_ptr<Expression>> &group_by() { return group_by_; }
+  std::vector<std::unique_ptr<Expression>> &order_by_exprs() { return order_by_exprs_; }
+  std::vector<bool>                        &order_by_descs() { return order_by_descs_; }
 
-private:
+//private:
   vector<unique_ptr<Expression>> query_expressions_;
   vector<Table *>                tables_;
   FilterStmt                    *filter_stmt_ = nullptr;
   vector<unique_ptr<Expression>> group_by_;
+  std::vector<std::unique_ptr<Expression>> order_by_exprs_;
+  std::vector<bool>                        order_by_descs_;
 };

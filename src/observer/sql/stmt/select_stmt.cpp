@@ -82,6 +82,17 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt)
     }
   }
 
+  vector<unique_ptr<Expression>> order_by_exprs;
+  vector<bool>                   order_by_descs;
+  for (OrderBySqlNode &order_by : select_sql.order_by) {
+    RC rc = expression_binder.bind_expression(order_by.expression, order_by_exprs);
+    if (OB_FAIL(rc)) {
+      LOG_INFO("bind expression failed. rc=%s", strrc(rc));
+      return rc;
+    }
+    order_by_descs.push_back(order_by.is_desc);
+  }
+
   Table *default_table = nullptr;
   if (tables.size() == 1) {
     default_table = tables[0];
@@ -107,6 +118,8 @@ RC SelectStmt::create(Db *db, SelectSqlNode &select_sql, Stmt *&stmt)
   select_stmt->query_expressions_.swap(bound_expressions);
   select_stmt->filter_stmt_ = filter_stmt;
   select_stmt->group_by_.swap(group_by_expressions);
+  select_stmt->order_by_exprs_.swap(order_by_exprs);
+  select_stmt->order_by_descs_.swap(order_by_descs);
   stmt                      = select_stmt;
   return RC::SUCCESS;
 }

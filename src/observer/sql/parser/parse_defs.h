@@ -82,10 +82,25 @@ struct ConditionSqlNode
   Value          right_value;    ///< right-hand side value if right_is_attr = FALSE
 };
 
+
+/**
+ * @brief 描述一个join语句
+ * @ingroup SQLParser
+ */
 struct JoinSqlNode
 {
   RelationSqlNode relation;  ///< Relation to join with
   std::vector<ConditionSqlNode> conditions;
+};
+
+/**
+ * @brief 描述一个order by语句
+ * @ingroup SQLParser
+ */
+struct OrderBySqlNode
+{
+  std::unique_ptr<Expression> expression;  ///< 排序的字段
+  bool                        is_desc;     ///< 是否是降序
 };
 
 /**
@@ -105,6 +120,7 @@ struct SelectSqlNode
   vector<RelationSqlNode>        relations;    ///< 查询的表
   vector<ConditionSqlNode>       conditions;   ///< 查询条件，使用AND串联起来多个条件
   vector<unique_ptr<Expression>> group_by;     ///< group by clause
+  vector<OrderBySqlNode>         order_by;     ///< order by clause
 };
 
 /**
