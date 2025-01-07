@@ -19,22 +19,30 @@ See the Mulan PSL v2 for more details. */
 
 using namespace std;
 
-InsertPhysicalOperator::InsertPhysicalOperator(Table *table, vector<Value> &&values)
-    : table_(table), values_(std::move(values))
+InsertPhysicalOperator::InsertPhysicalOperator(Table *table, vector<vector<Value>> &&items)
+    : table_(table), items_(std::move(items))
 {}
 
 RC InsertPhysicalOperator::open(Trx *trx)
 {
-  Record record;
-  RC     rc = table_->make_record(static_cast<int>(values_.size()), values_.data(), record);
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to make record. rc=%s", strrc(rc));
-    return rc;
+  std::vector<Record> records;
+  for (auto &item_ : items_) {
+    Record record;
+    RC     rc = table_->make_record(static_cast<int>(item_.size()), item_.data(), record);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to make record. rc=%s", strrc(rc));
+      return rc;
+    }
+    records.emplace_back(record);
   }
 
-  rc = trx->insert_record(table_, record);
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to insert record by transaction. rc=%s", strrc(rc));
+ RC rc = RC::SUCCESS;
+  for(auto &record : records) {
+    rc = trx->insert_record(table_, record);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to insert record by transaction. rc=%s", strrc(rc));
+      return rc;
+    }
   }
   return rc;
 }

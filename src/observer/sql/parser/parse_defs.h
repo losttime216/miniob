@@ -108,9 +108,9 @@ struct CalcSqlNode
  * @details 于Selects类似，也做了很多简化
  */
 struct InsertSqlNode
-{
-  string        relation_name;  ///< Relation to insert into
-  vector<Value> values;         ///< 要插入的值
+{ 
+  string        relation_name;                  ///< Relation to insert into
+  std::vector<std::vector<Value>> items;        ///< 要插入的值
 };
 
 /**
