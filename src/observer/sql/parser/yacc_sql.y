@@ -505,6 +505,7 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
 
       if ($4 != nullptr) {
+        std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
         $$->selection.relations.swap(*$4);
         delete $4;
       }
@@ -642,7 +643,7 @@ relation:
     ;
 rel_list:
     relation {
-       $$ = new vector<RelationSqlNode>;
+      $$ = new vector<RelationSqlNode>;
       $$->emplace_back(*$1);
       delete $1;
     }
