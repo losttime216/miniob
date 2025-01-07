@@ -711,9 +711,15 @@ comp_op:
 
 // your code here
 group_by:
-    /* empty */
     {
       $$ = nullptr;
+    }
+     | GROUP BY expression_list
+    {
+      $$ = nullptr;
+      $$ = new std::vector<std::unique_ptr<Expression>>;
+      $$->swap(*$3);
+      delete $3;
     }
     ;
 load_data_stmt:
