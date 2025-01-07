@@ -77,7 +77,8 @@ See the Mulan PSL v2 for more details. */
   DEFINE_RC(LOG_FILE_FULL)               \
   DEFINE_RC(LOG_ENTRY_INVALID)           \
   DEFINE_RC(UNSUPPORTED)                 \
-  DEFINE_RC(IOERR_DELETE)
+  DEFINE_RC(IOERR_DELETE)                \
+  DEFINE_RC(UNIQUE_INDEX_EXIST)          
 
 enum class RC
 {

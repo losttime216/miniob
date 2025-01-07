@@ -41,14 +41,19 @@ RC UpdatePhysicalOperator::open(Trx *trx)
         }
         values_ = &real_value;
     }
+
+    vector<Record> new_records;
     // 记录的有效性由事务来保证，如果事务不保证更新的有效性，那说明此事务类型不支持并发控制，比如 VacuousTrx
     for (Record &record : records_) {
         Record new_record;
         new_record.copy_data(record.data(), record.len());
         new_record.set_rid(record.rid());
         new_record.set_field(field_meta_->offset(), field_meta_->len(), const_cast<char*>(values_->data()));
-        rc = trx_->update_record(table_, record, new_record);
-        // rc = trx_->update_record(table_, record, values_, field_meta_);
+        new_records.emplace_back(std::move(new_record));
+        trx_->delete_record(table_, record); // 由于 unique index 的存在，需要先全部删除再插入，而不能删除一条就插入一条
+    }
+    for (Record &record : new_records) {
+        rc = trx_->insert_record(table_, record);
         if (rc != RC::SUCCESS) {
             LOG_WARN("failed to update record: %s", strrc(rc));
             return rc;

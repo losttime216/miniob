@@ -82,6 +82,22 @@ RC BplusTreeIndex::close()
 
 RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
 {
+  if (index_meta_.type() == IndexMeta::IndexType::INDEX_TYPE_UNIQUE) {
+    // unique index
+    list<RID> tmp_rid;
+    RC rc = index_handler_.get_entry(record + field_meta_.offset(), field_meta_.len(), tmp_rid);
+    if (rc == RC::SUCCESS) {
+      if (!tmp_rid.empty()) {
+        LOG_WARN("Failed to insert existing entry into unique index . index:%s, field:%s, rc:%s",
+            index_meta_.name(), field_meta_.name(), strrc(RC::UNIQUE_INDEX_EXIST));
+        return RC::UNIQUE_INDEX_EXIST;
+      }
+    } else if (rc != RC::SUCCESS) {
+      LOG_WARN("Failed to check if the entry is unique. index:%s, field:%s, rc:%s",
+          index_meta_.name(), field_meta_.name(), strrc(rc));
+      return rc;
+    }
+  }
   return index_handler_.insert_entry(record + field_meta_.offset(), rid);
 }
 

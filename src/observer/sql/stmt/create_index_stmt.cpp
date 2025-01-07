@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
+#include "storage/index/index_meta.h"
 
 using namespace std;
 using namespace common;
@@ -53,6 +54,23 @@ RC CreateIndexStmt::create(Db *db, const CreateIndexSqlNode &create_index, Stmt 
     return RC::SCHEMA_INDEX_NAME_REPEAT;
   }
 
-  stmt = new CreateIndexStmt(table, field_meta, create_index.index_name);
+  string index_type_str = create_index.index_type;
+  transform(index_type_str.begin(), index_type_str.end(), index_type_str.begin(), ::tolower);
+
+  IndexMeta::IndexType index_type = IndexMeta::INDEX_TYPE_DEFAULT;
+  if (index_type_str == "unique") {
+    index_type = IndexMeta::INDEX_TYPE_UNIQUE;
+  } else if (index_type_str == "fulltext") {
+    index_type = IndexMeta::INDEX_TYPE_FULLTEXT;
+  } else if (index_type_str == "cluster") {
+    index_type = IndexMeta::INDEX_TYPE_CLUSTER;
+  } else if (index_type_str == "default" || index_type_str == "") {
+    index_type = IndexMeta::INDEX_TYPE_DEFAULT;
+  } else {
+    LOG_WARN("invalid index type. index type=%s", index_type_str.c_str());
+    return RC::INVALID_ARGUMENT;
+  }
+
+  stmt = new CreateIndexStmt(table, field_meta, create_index.index_name, index_type);
   return RC::SUCCESS;
 }

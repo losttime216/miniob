@@ -33,13 +33,21 @@ class Value;
 class IndexMeta
 {
 public:
+  enum IndexType {
+    INDEX_TYPE_DEFAULT = 0, // Non-unique index
+    INDEX_TYPE_UNIQUE,
+    INDEX_TYPE_FULLTEXT,
+    INDEX_TYPE_CLUSTER,
+    INDEX_TYPE_MAX
+  };
   IndexMeta() = default;
 
-  RC init(const char *name, const FieldMeta &field);
+ RC init(const char *name, const FieldMeta &field, const IndexMeta::IndexType &index_type);
 
 public:
   const char *name() const;
   const char *field() const;
+  const IndexType type() const;
 
   void desc(ostream &os) const;
 
@@ -50,4 +58,5 @@ public:
 protected:
   string name_;   // index's name
   string field_;  // field's name
+  IndexType type_ = INDEX_TYPE_DEFAULT;
 };
