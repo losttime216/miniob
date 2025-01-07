@@ -130,7 +130,7 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
   // 看看是否有可以用于索引查找的表达式
   Table *table = table_get_oper.table();
 
-/* Index     *index      = nullptr;
+  Index     *index      = nullptr;
   ValueExpr *value_expr = nullptr;
   for (auto &expr : predicates) {
     if (expr->type() == ExprType::COMPARISON) {
@@ -185,7 +185,7 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
     index_scan_oper->set_predicates(std::move(predicates));
     oper = unique_ptr<PhysicalOperator>(index_scan_oper);
     LOG_TRACE("use index scan");
-  } else */
+  } else 
   {
     auto table_scan_oper = new TableScanPhysicalOperator(table, table_get_oper.read_write_mode());
     table_scan_oper->set_predicates(std::move(predicates));
@@ -295,7 +295,7 @@ RC PhysicalPlanGenerator::create_plan(UpdateLogicalOperator &update_oper, unique
     }
   }
   
-  oper = unique_ptr<PhysicalOperator>(new UpdatePhysicalOperator(update_oper.table(), update_oper.value(), update_oper.field_name()));
+  oper = unique_ptr<PhysicalOperator>(new UpdatePhysicalOperator(update_oper.table(), update_oper.values(), update_oper.field_meta()));
   if (child_physical_oper) {
     oper->add_child(std::move(child_physical_oper));
   }

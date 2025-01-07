@@ -210,6 +210,57 @@ RC Table::insert_record(Record &record)
   return rc;
 }
 
+RC Table::update_record(const Record &record, const Value *values, const FieldMeta *field_meta)
+{
+  return RC::UNIMPLEMENTED;
+  RC rc = RC::SUCCESS;
+  std::function<bool(Record &)> updater = [&](Record &record) {
+    for (int i = 0; i < table_meta_.field_num(); i++) {
+      const FieldMeta *field = table_meta_.field(i);
+      if (field->name() == field_meta->name()) { // 暂时只支持一个字段
+        //rc = set_value_to_record(record.data(), values[0], field);
+        if (field->type() != values[0].attr_type()) { // 类型不一致，需要转换
+          Value real_value;
+          rc = Value::cast_to(values[0], field->type(), real_value);
+          if (OB_FAIL(rc)) {
+            LOG_WARN("failed to cast value. table name:%s,field name:%s,value:%s ",
+                table_meta_.name(), field->name(), values[0].to_string().c_str());
+            break;
+          }
+          rc = set_value_to_record(record.data(), real_value, field);
+        } else {
+          rc = set_value_to_record(record.data(), values[0], field);
+        }
+        if (rc != RC::SUCCESS) {
+          LOG_WARN("failed to set value to record. table name:%s, field name:%s, rc=%s",
+              table_meta_.name(), field->name(), strrc(rc));
+          return false;
+        }
+        // 更新索引
+        Index *index = find_index(field_meta->name());
+        if (index != nullptr) {
+          rc = index->delete_entry(record.data(), &record.rid());
+          if (rc != RC::SUCCESS) {
+            LOG_WARN("failed to delete index entry. table name:%s, field name:%s, rc=%s",
+                table_meta_.name(), field->name(), strrc(rc));
+            return false;
+          }
+          rc = index->insert_entry(record.data(), &record.rid());
+          if (rc != RC::SUCCESS) {
+            LOG_WARN("failed to insert index entry. table name:%s, field name:%s, rc=%s",
+                table_meta_.name(), field->name(), strrc(rc));
+          }
+          return false;
+        }
+        break;
+      }
+    }
+    return true;
+  };
+  rc = visit_record(record.rid(), updater);
+  return rc;
+}
+
 RC Table::visit_record(const RID &rid, function<bool(Record &)> visitor)
 {
   return record_handler_->visit_record(rid, visitor);

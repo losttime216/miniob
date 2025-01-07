@@ -273,15 +273,10 @@ RC LogicalPlanGenerator::create_plan(
     UpdateStmt *update_stmt, unique_ptr<LogicalOperator> &logical_operator)
 {
   Table *table = update_stmt->table();
-  std::string field_name = update_stmt->field_name();
-  Value *value = update_stmt->value();
+  FieldMeta *field_meta = update_stmt->field_meta();
+  Value *value = update_stmt->values();
   FilterStmt *filter_stmt = update_stmt->filter_stmt();
   std::vector<Field> fields;
-  // 获得表的所有字段
-  for (int i = table->table_meta().sys_field_num(); i < table->table_meta().field_num(); i++) {
-    const FieldMeta *field_meta = table->table_meta().field(i);
-    fields.push_back(Field(table, field_meta));
-  }
   // 创建获取表数据算子，false表示可修改数据
   unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, ReadWriteMode::READ_WRITE));
   // 根据filter_stmt创建过滤算子
@@ -291,7 +286,7 @@ RC LogicalPlanGenerator::create_plan(
     return rc;
   }
   // 创建更新算子
-  unique_ptr<LogicalOperator> update_oper(new UpdateLogicalOperator(table, value, field_name));
+  unique_ptr<LogicalOperator> update_oper(new UpdateLogicalOperator(table, value, field_meta));
   // 连接各个算子
   if (predicate_oper) {
     predicate_oper->add_child(std::move(table_get_oper));

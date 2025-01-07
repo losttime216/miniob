@@ -186,6 +186,19 @@ RC MvccTrx::delete_record(Table *table, Record &record)
   return RC::SUCCESS;
 }
 
+RC MvccTrx::update_record(Table *table, Record &old_record, Record &new_record) {
+  RC rc = delete_record(table, old_record);
+  if (rc != RC::SUCCESS) {
+    return rc;
+  }
+  rc = insert_record(table, new_record);
+  return rc;
+}
+RC MvccTrx::update_record(Table *table, Record &record, Value *values, FieldMeta *field_meta) {
+  return RC::UNIMPLEMENTED;
+  // return table->update_record(record, values, field_meta);
+}
+
 RC MvccTrx::visit_record(Table *table, Record &record, ReadWriteMode mode)
 {
   Field begin_field;

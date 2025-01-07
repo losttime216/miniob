@@ -79,6 +79,15 @@ public:
   RC insert_record(Table *table, Record &record) override;
   RC delete_record(Table *table, Record &record) override;
 
+ /**
+   * @details 用新记录替换旧记录
+   */
+  RC update_record(Table *table, Record &old_record, Record &new_record) override;
+  /**
+   * @details 更新记录的部分字段
+   */
+  RC update_record(Table *table, Record &record, Value *values, FieldMeta *field_meta) override;
+
   /**
    * @brief 当访问到某条数据时，使用此函数来判断是否可见，或者是否有访问冲突
    *

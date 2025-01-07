@@ -47,6 +47,16 @@ public:
   RC insert_record(Table *table, Record &record) override;
   RC delete_record(Table *table, Record &record) override;
   RC visit_record(Table *table, Record &record, ReadWriteMode mode) override;
+
+  /**
+   * @details 用新记录替换旧记录
+   */
+  RC update_record(Table *table, Record &old_record, Record &new_record) override;
+  /**
+   * @details 更新记录的部分字段
+   */
+  RC update_record(Table *table, Record &record, Value *values, FieldMeta *field_meta) override;
+
   RC start_if_need() override;
   RC commit() override;
   RC rollback() override;

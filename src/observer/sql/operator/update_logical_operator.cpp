@@ -1,5 +1,4 @@
-#include "update_logical_operator.h"
-
-UpdateLogicalOperator::UpdateLogicalOperator(Table *table, Value *value, std::string field_name) 
-    : table_(table), value_(value), field_name_(field_name)
+#include "sql/operator/update_logical_operator.h"
+UpdateLogicalOperator::UpdateLogicalOperator(Table *table, Value *values, FieldMeta *field_meta)
+    : table_(table), values_(values), field_meta_(field_meta)
 {}
