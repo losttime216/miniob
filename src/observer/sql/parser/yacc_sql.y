@@ -97,6 +97,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         VALUES
         FROM
         WHERE
+        INNER_JOIN
         AND
         SET
         ON
@@ -112,6 +113,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
         LE
         GE
         NE
+        AS
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -120,6 +122,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   Value *                                    value;
   enum CompOp                                comp;
   RelAttrSqlNode *                           rel_attr;
+  RelationSqlNode *                          relation;
   vector<AttrInfoSqlNode> *             attr_infos;
   AttrInfoSqlNode *                          attr_info;
   Expression *                               expression;
@@ -128,7 +131,8 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
   std::vector<std::vector<Value>> *          insert_item_list;
   vector<ConditionSqlNode> *            condition_list;
   vector<RelAttrSqlNode> *              rel_attr_list;
-  vector<string> *                 relation_list;
+  vector<RelationSqlNode> *             relation_list;
+  vector<JoinSqlNode> *                 join_list;
   char *                                     cstring;
   int                                        number;
   float                                      floats;
@@ -147,7 +151,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <condition>           condition
 %type <value>               value
 %type <number>              number
-%type <cstring>             relation
+%type <relation>            relation
 %type <comp>                comp_op
 %type <rel_attr>            rel_attr
 %type <attr_infos>          attr_def_list
@@ -157,6 +161,7 @@ UnboundAggregateExpr *create_aggregate_expression(const char *aggregate_name,
 %type <insert_item_list>    insert_item_list
 %type <condition_list>      where
 %type <condition_list>      condition_list
+%type <join_list>           join_list
 %type <cstring>             storage_format
 %type <relation_list>       rel_list
 %type <expression>          expression
@@ -489,8 +494,9 @@ update_stmt:      /*  update 语句的语法解析树*/
       }
     }
     ;
+
 select_stmt:        /*  select 语句的语法解析树*/
-    SELECT expression_list FROM rel_list where group_by
+    SELECT expression_list FROM rel_list join_list where group_by
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       if ($2 != nullptr) {
@@ -504,13 +510,27 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
 
       if ($5 != nullptr) {
-        $$->selection.conditions.swap(*$5);
-        delete $5;
+        /* 由于是递归顺序解析的join，需要 reverse */
+        std::reverse($5->begin(), $5->end());
+        for (auto &join : *$5) {
+          $$->selection.relations.push_back(join.relation);
+          for (auto &condition : join.conditions) {
+            $$->selection.conditions.emplace_back(std::move(condition));
+          }
+        }
       }
 
       if ($6 != nullptr) {
-        $$->selection.group_by.swap(*$6);
+        for (auto &condition : *$6) {
+          $$->selection.conditions.emplace_back(std::move(condition));
+        }
+        std::reverse($$->selection.conditions.begin(), $$->selection.conditions.end());
         delete $6;
+      }
+
+      if ($7 != nullptr) {
+        $$->selection.group_by.swap(*$7);
+        delete $7;
       }
     }
     ;
@@ -605,22 +625,59 @@ rel_attr:
 
 relation:
     ID {
-      $$ = $1;
+      $$ = new RelationSqlNode;
+      $$->name = $1;
+      $$->alias = "";
+    }
+    | ID AS ID {
+      $$ = new RelationSqlNode;
+      $$->name = $1;
+      $$->alias = $3;
+    }
+    | ID ID {
+      $$ = new RelationSqlNode;
+      $$->name = $1;
+      $$->alias = $2;
     }
     ;
 rel_list:
     relation {
-      $$ = new vector<string>();
-      $$->push_back($1);
+       $$ = new vector<RelationSqlNode>;
+      $$->emplace_back(*$1);
+      delete $1;
     }
     | relation COMMA rel_list {
       if ($3 != nullptr) {
         $$ = $3;
       } else {
-        $$ = new vector<string>;
+        $$ = new vector<RelationSqlNode>;
+      }
+       $$->emplace_back(*$1);
+      delete $1;
+    }
+    ;
+
+      join_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | INNER_JOIN relation ON condition_list join_list {
+      if ($5 != nullptr) {
+        $$ = $5;
+      } else {
+        $$ = new vector<JoinSqlNode>;
       }
 
-      $$->insert($$->begin(), $1);
+      JoinSqlNode join1;
+      join1.relation = *$2;
+      delete $2;
+      // reverse
+      std::reverse($4->begin(), $4->end());
+      for (auto &condition : *$4) {
+        join1.conditions.emplace_back(std::move(condition));
+      }
+      $$->emplace_back(std::move(join1));
     }
     ;
 
