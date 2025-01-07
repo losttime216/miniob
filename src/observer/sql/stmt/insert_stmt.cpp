@@ -56,7 +56,9 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
       const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
       const AttrType field_type = field_meta->type();
       const AttrType item_type = item[i].attr_type();
-      if (field_type != item_type) {  // TODO try to convert the value type to field type
+      bool in =item.data()->is_null();
+      //if (field_type != item_type) {  // TODO try to convert the value type to field type
+      if (field_type != item_type && !field_meta->is_nullable() && in) {
         LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, item_type=%d",
             table_name, field_meta->name(), field_type, item_type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
